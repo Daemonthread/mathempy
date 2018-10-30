@@ -1,8 +1,9 @@
 import os
+import time
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, NoAlertPresentException
 
 
 class Mathempy:
@@ -58,7 +59,35 @@ class Mathempy:
             total = total.rstrip()
             return float(total)
         except NoSuchElementException as e:
-            return None
+            return 0
+
+    def save_basket(self, basket_name):
+        self.driver.get(self.basket_url)
+        try:
+            expand_save_basket_inputs_button = self.driver.find_element_by_class_name("icon-list")
+            expand_save_basket_inputs_button.click()
+        except NoSuchElementException as e:
+            print("Not logged in")
+            return False
+
+        save_basket_list_input = self.driver.find_element_by_id("shoppingListName")
+        time.sleep(1) # wait for the dialog box to open
+        save_basket_list_input.clear()
+        save_basket_list_input.send_keys(basket_name)
+
+        save_list_save_button = self.driver.find_element_by_xpath("//input[@value='Spara']")
+        save_list_save_button.click()
+
+        try:
+            time.sleep(2) # wait for the alert to finish arriving, if it does at all
+            alert = self.driver.switch_to_alert()
+            alert.accept()
+            print("A basket with that name already exists.")
+            return False
+        except NoAlertPresentException as e:
+            return True
+
+
 
     def login(self, username, password):
 
