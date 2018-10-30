@@ -3,7 +3,7 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import NoSuchElementException, NoAlertPresentException
+from selenium.common.exceptions import NoSuchElementException, NoAlertPresentException, ElementNotVisibleException
 
 
 class Mathempy:
@@ -12,6 +12,7 @@ class Mathempy:
         self.basket_url = "https://www.mathem.se/kassan"
         self.login_url = "https://www.mathem.se/Account/LogIn"
         self.logout_url = "https://www.mathem.se/Account/LogOffConfirmed"
+        self.delete_basket_item_url = "https://www.mathem.se/ShoppingCart/Delete/"
         self.headless = headless
         if not chromedriver_executable_path:
             self.chromedriver_executable_path=os.path.abspath("../chromedriver")
@@ -43,9 +44,10 @@ class Mathempy:
             
         for item in shopping_cart_list.find_elements_by_xpath("//div[@data-group='category']"):
             this_item_name = item.find_element_by_class_name("prodTitle").text
-            this_item_quantity = item.find_element_by_name("Quantity").get_attribute("value")
-            contents.append({"name": this_item_name, "quantity": this_item_quantity})
-
+            this_item_details = item.find_element_by_name("Quantity")
+            this_item_quantity = this_item_details.get_attribute("value")
+            this_item_id= this_item_details.get_attribute("data-product-id")
+            contents.append({"name": this_item_name, "quantity": this_item_quantity, "id": this_item_id })
         return contents
 
     def basket_total(self):
@@ -67,7 +69,6 @@ class Mathempy:
             expand_save_basket_inputs_button = self.driver.find_element_by_class_name("icon-list")
             expand_save_basket_inputs_button.click()
         except NoSuchElementException as e:
-            print("Not logged in")
             return False
 
         save_basket_list_input = self.driver.find_element_by_id("shoppingListName")
@@ -82,12 +83,15 @@ class Mathempy:
             time.sleep(2) # wait for the alert to finish arriving, if it does at all
             alert = self.driver.switch_to_alert()
             alert.accept()
-            print("A basket with that name already exists.")
             return False
         except NoAlertPresentException as e:
             return True
 
-
+    def clear_basket(self):
+        items = self.basket_list()
+        for item in items:
+            delete_url = "{}{}".format(self.delete_basket_item_url, item['id'])
+            self.driver.get(delete_url)
 
     def login(self, username, password):
 
